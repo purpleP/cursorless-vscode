@@ -380,6 +380,7 @@ export type ActionType =
   | "insertEmptyLineAfter"
   | "insertEmptyLineBefore"
   | "insertEmptyLinesAround"
+  | "insertSnippet"
   | "moveToTarget"
   | "outdentLine"
   | "pasteFromClipboard"
@@ -507,3 +508,5 @@ export interface Edit {
    */
   isReplace?: boolean;
 }
+
+export type TextFormatterName = "camelCase" | "pascalCase" | "snakeCase";

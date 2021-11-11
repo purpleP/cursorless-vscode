@@ -9,59 +9,22 @@
                 "type": "array",
                 "descriptions": "List of possible definitions for this snippet",
                 "items": {
-                    "type": "object",
-                    "properties": {
-                        "scope": {
-                            "type": "object",
-                            "description": "Scopes where this snippet is active",
-                            "properties": {
-                                "langIds": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                },
-                                "scopeType": {
-                                    "$ref": "#/$defs/scopeType",
-                                    "description": "Cursorless scopes in which this snippet is active.  Allows, for example, to have different snippets to define a function if you're in a class or at global scope."
-                                }
-                            }
-                        },
-                        "body": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "Inline snippet text using VSCode snippet syntax; entries joined by newline.  Named variables of the form $foo can be used as wrappers"
-                        }
-                    },
-                    "required": [
-                        "body"
-                    ]
+                    "$ref": "#/$defs/snippetDefinition"
                 }
             },
             "variables": {
-                "type": "object",
-                "description": "For each named variable in the snippet, provides extra information about the variable.",
-                "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                        "wrapperScopeType": {
-                            "$ref": "#/$defs/scopeType",
-                            "description": "Default to this scope type when wrapping a target without scope type specified"
-                        },
-                        "description": {
-                            "type": "string",
-                            "description": "Description of the snippet variable"
-                        }
-                    }
-                }
+                "$ref": "#/$defs/variables"
             },
             "description": {
                 "type": "string",
                 "description": "Description of the snippet"
+            },
+            "insertionScopeType": {
+                "$ref": "#/$defs/scopeType",
+                "description": "Default to this scope type when inserting this snippet before/after a target without scope type specified"
             }
-        }
+        },
+        "additionalProperties": false
     },
     "$defs": {
         "scopeType": {
@@ -91,6 +54,69 @@
                 "xmlElement",
                 "xmlEndTag",
                 "xmlStartTag"
+            ]
+        },
+        "variables": {
+            "type": "object",
+            "description": "For each named variable in the snippet, provides extra information about the variable.",
+            "additionalProperties": {
+                "type": "object",
+                "properties": {
+                    "wrapperScopeType": {
+                        "$ref": "#/$defs/scopeType",
+                        "description": "Default to this scope type when wrapping a target without scope type specified"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description of the snippet variable"
+                    },
+                    "formatter": {
+                        "type": "string",
+                        "enum": [
+                            "camelCase",
+                            "pascalCase",
+                            "snakeCase"
+                        ],
+                        "description": "Format text inserted into this variable using the given formatter"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "snippetDefinition": {
+            "type": "object",
+            "properties": {
+                "scope": {
+                    "type": "object",
+                    "description": "Scopes where this snippet is active",
+                    "properties": {
+                        "langIds": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "scopeType": {
+                            "$ref": "#/$defs/scopeType",
+                            "description": "Cursorless scopes in which this snippet is active.  Allows, for example, to have different snippets to define a function if you're in a class or at global scope."
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "body": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Inline snippet text using VSCode snippet syntax; entries joined by newline.  Named variables of the form $foo can be used as wrappers"
+                },
+                "variables": {
+                    "$ref": "#/$defs/variables"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "body"
             ]
         }
     }
