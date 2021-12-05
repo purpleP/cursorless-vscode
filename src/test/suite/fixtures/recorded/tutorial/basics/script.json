@@ -1,0 +1,7 @@
+[
+    "Every cursorless command consists of an action performed on a target. For example, the command {takeWhale.yml} selects the token with a grey hat over the 'w'.",
+    "When a hat is not gray, we need to use a color to refer to it: {takeBlueSun.yml}",
+    "Selecting a single token is great but oftentimes we need something bigger. Say {takeEachPastKick.yml} to select a range.",
+    "Despite its name, one of the most powerful aspects of cursorless is the ability to use more than one cursor. Let's try that: {takeWhaleAndVest.yml}",
+    "But let's show that cursorless can live up to its name: we can say {chuckDrum.yml} to delete a word without ever moving our cursor."
+]
