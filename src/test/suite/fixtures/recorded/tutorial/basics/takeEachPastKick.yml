@@ -55,4 +55,4 @@ finalState:
   thatMark:
     - anchor: {line: 4, character: 13}
       active: {line: 4, character: 36}
-fullTargets: [{type: range, excludeAnchor: false, excludeActive: false, anchor: {type: primitive, mark: {type: decoratedSymbol, symbolColor: default, character: e, usePrePhraseSnapshot: true}, selectionType: token, position: contents, insideOutsideType: inside, modifier: {type: identity}}, active: {type: primitive, mark: {type: decoratedSymbol, symbolColor: default, character: k, usePrePhraseSnapshot: true}, selectionType: token, position: contents, insideOutsideType: inside, modifier: {type: identity}}}]
+fullTargets: [{type: range, excludeAnchor: false, excludeActive: false, rangeType: continuous, anchor: {type: primitive, mark: {type: decoratedSymbol, symbolColor: default, character: e}, selectionType: token, position: contents, insideOutsideType: inside, modifier: {type: identity}}, active: {type: primitive, mark: {type: decoratedSymbol, symbolColor: default, character: k}, selectionType: token, position: contents, insideOutsideType: inside, modifier: {type: identity}}}]

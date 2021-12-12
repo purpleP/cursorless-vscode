@@ -10,5 +10,5 @@
     "Say {action:setSelectionAfter} to place the cursor after a target: {step:postLook.yml}",
     "Say {action:clearAndSetSelection} to delete a word and move your cursor to where it used to be: {step:clearTrap.yml}",
     "Chaining commands is a great way to code faster: {step:clearWhaleWordYou.yml+wordYou}",
-    "And that wraps up unit 1 of the cursorless tutorial. Next time, we'll write some code ☺️."
+    "And that wraps up unit 1 of the cursorless tutorial! Next time, we'll write some code ☺️"
 ]
