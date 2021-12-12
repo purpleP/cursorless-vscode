@@ -1,40 +1,17 @@
 languageId: plaintext
 command:
   version: 1
-  spokenForm: chuck drum
-  action: remove
+  spokenForm: post look
+  action: setSelectionAfter
   targets:
     - type: primitive
-      mark: {type: decoratedSymbol, symbolColor: default, character: d}
+      mark: {type: decoratedSymbol, symbolColor: default, character: l}
 initialState:
   documentContents: |-
     ==================================================
     ==========                              ==========
     ==========    Welcome to Cursorless!    ==========
     ==========                              ==========
-    ==========   Let's start using marks    ==========
-    ==========                              ==========
-    ==========  So we can navigate around   ==========
-    ==========                              ==========
-    ==========  Without lifting a finger!   ==========
-    ==========                              ==========
-    ==================================================
-  selections:
-    - anchor: {line: 2, character: 14}
-      active: {line: 2, character: 21}
-    - anchor: {line: 6, character: 15}
-      active: {line: 6, character: 17}
-  marks:
-    default.d:
-      start: {line: 6, character: 31}
-      end: {line: 6, character: 37}
-finalState:
-  documentContents: |-
-    ==================================================
-    ==========                              ==========
-    ==========    Welcome to Cursorless!    ==========
-    ==========                              ==========
-    ==========   Let's start using marks    ==========
     ==========                              ==========
     ==========  So we can navigate ==========
     ==========                              ==========
@@ -42,11 +19,28 @@ finalState:
     ==========                              ==========
     ==================================================
   selections:
-    - anchor: {line: 2, character: 14}
-      active: {line: 2, character: 21}
-    - anchor: {line: 6, character: 15}
-      active: {line: 6, character: 17}
+    - anchor: {line: 7, character: 12}
+      active: {line: 7, character: 12}
+  marks:
+    default.l:
+      start: {line: 7, character: 20}
+      end: {line: 7, character: 27}
+finalState:
+  documentContents: |-
+    ==================================================
+    ==========                              ==========
+    ==========    Welcome to Cursorless!    ==========
+    ==========                              ==========
+    ==========                              ==========
+    ==========  So we can navigate ==========
+    ==========                              ==========
+    ==========  Without lifting a finger!   ==========
+    ==========                              ==========
+    ==================================================
+  selections:
+    - anchor: {line: 7, character: 27}
+      active: {line: 7, character: 27}
   thatMark:
-    - anchor: {line: 6, character: 31}
-      active: {line: 6, character: 31}
-fullTargets: [{type: primitive, mark: {type: decoratedSymbol, symbolColor: default, character: d}, selectionType: token, position: contents, insideOutsideType: outside, modifier: {type: identity}}]
+    - anchor: {line: 7, character: 20}
+      active: {line: 7, character: 27}
+fullTargets: [{type: primitive, mark: {type: decoratedSymbol, symbolColor: default, character: l}, selectionType: token, position: contents, insideOutsideType: inside, modifier: {type: identity}}]
