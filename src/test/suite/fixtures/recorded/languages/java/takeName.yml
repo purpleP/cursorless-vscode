@@ -1,12 +1,11 @@
-spokenForm: take name
 languageId: java
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take name
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: name}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: |
 
@@ -18,6 +17,7 @@ initialState:
   selections:
     - anchor: {line: 3, character: 0}
       active: {line: 3, character: 0}
+  marks: {}
 finalState:
   documentContents: |
 

@@ -1,12 +1,11 @@
-spokenForm: take every item
 languageId: cpp
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take every item
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: collectionItem, includeSiblings: true}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: |-
     int f(int a, int b) {
@@ -15,6 +14,7 @@ initialState:
   selections:
     - anchor: {line: 1, character: 29}
       active: {line: 1, character: 29}
+  marks: {}
 finalState:
   documentContents: |-
     int f(int a, int b) {

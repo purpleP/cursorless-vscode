@@ -1,7 +1,9 @@
 import {
   createPatternMatchers,
   argumentMatcher,
-  valueMatcher,
+  leadingMatcher,
+  conditionMatcher,
+  trailingMatcher,
 } from "../util/nodeMatchers";
 import { NodeMatcherAlternative, ScopeType } from "../typings/Types";
 
@@ -51,18 +53,21 @@ const nodeMatchers: Partial<Record<ScopeType, NodeMatcherAlternative>> = {
   map: "block",
   name: ["*[declarator][name]", "*[name]", "formal_parameter.identifier!"],
   namedFunction: ["method_declaration", "constructor_declaration"],
-  type: [
+  type: trailingMatcher([
+    "generic_type.type_arguments.type_identifier",
+    "generic_type.type_identifier",
     "type_identifier",
     "local_variable_declaration[type]",
     "array_creation_expression[type]",
     "formal_parameter[type]",
     "method_declaration[type]",
-  ],
+  ]),
   functionName: [
     "method_declaration.identifier!",
     "constructor_declaration.identifier!",
   ],
-  value: valueMatcher("*[declarator][value]", "*[value]"),
+  value: leadingMatcher(["*[declarator][value]", "*[value]"], ["="]),
+  condition: conditionMatcher("*[condition]"),
   collectionItem: argumentMatcher("array_initializer"),
   argumentOrParameter: argumentMatcher("formal_parameters", "argument_list"),
 };

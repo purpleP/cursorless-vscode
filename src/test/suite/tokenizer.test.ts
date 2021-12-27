@@ -22,6 +22,7 @@ const tests: TestCase[] = [
   ["my.variable", ["my", ".", "variable"]],
   ["my/variable", ["my", "/", "variable"]],
   ["my::variable", ["my", "::", "variable"]],
+  ["_a", ["_a"]],
   // Strings
   ['"my variable"', ['"', "my", "variable", '"']],
   ["'my variable'", ["'", "my", "variable", "'"]],
@@ -38,8 +39,23 @@ const tests: TestCase[] = [
   ["->", ["->"]],
   ["??", ["??"]],
   ["\\r\\n\\t", ["\\r", "\\n", "\\t"]],
+  ['"""hello"""', ['"""', "hello", '"""']],
+  ["```typescript", ["```", "typescript"]],
+  ['""""""', ['"""', '"""']],
+  ["``````", ["```", "```"]],
+  ['""', ['"', '"']],
+  ["''", ["'", "'"]],
+  ["``", ["`", "`"]],
   // Comments
   ["// Hello world", ["//", "Hello", "world"]],
+  // Hex colors
+  ["#aaaaaa", ["#", "aaaaaa"]],
+  ["#11aaaa", ["#", "11aaaa"]],
+  ["#aa11aa", ["#", "aa11aa"]],
+  ["#aaaa11", ["#", "aaaa11"]],
+  ["#111111", ["#", "111111"]],
+  // Unicode characters
+  ["aåäöb", ["aåäöb"]],
 ];
 
 suite("tokenizer", () => {

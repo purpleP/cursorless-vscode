@@ -1,21 +1,27 @@
 import * as assert from "assert";
+import serialize from "../../testUtil/serialize";
 import { promises as fsp } from "fs";
 import * as path from "path";
 import * as yaml from "js-yaml";
 import * as vscode from "vscode";
 import { TestCaseFixture } from "../../testUtil/TestCase";
-import NavigationMap from "../../core/NavigationMap";
+import HatTokenMap from "../../core/HatTokenMap";
 import * as sinon from "sinon";
 import { Clipboard } from "../../util/Clipboard";
 import { takeSnapshot } from "../../testUtil/takeSnapshot";
 import {
+  marksToPlainObject,
   PositionPlainObject,
   rangeToPlainObject,
   SelectionPlainObject,
+  SerializedMarks,
 } from "../../testUtil/toPlainObject";
-import { walkFilesSync } from "../../testUtil/walkSync";
-import { getCursorlessApi, getParseTreeApi } from "../../util/getExtensionApi";
-import { enableDebugLog } from "../../util/debug";
+import { getCursorlessApi } from "../../util/getExtensionApi";
+import { extractTargetedMarks } from "../../testUtil/extractTargetedMarks";
+import asyncSafety from "./asyncSafety";
+import { ReadOnlyHatMap } from "../../core/IndividualHatMap";
+import { openNewEditor } from "../openNewEditor";
+import getRecordedTestPaths from "./getRecordedTestPaths";
 
 function createPosition(position: PositionPlainObject) {
   return new vscode.Position(position.line, position.character);
@@ -29,19 +35,18 @@ function createSelection(selection: SelectionPlainObject): vscode.Selection {
 
 suite("recorded test cases", async function () {
   this.timeout("100s");
-  this.retries(3);
-  const directory = path.join(
-    __dirname,
-    "../../../src/test/suite/fixtures/recorded"
-  );
-  const files = walkFilesSync(directory);
-  enableDebugLog(false);
+  this.retries(5);
 
   teardown(() => {
     sinon.restore();
   });
 
-  files.forEach((file) => test(file.split(".")[0], () => runTest(file)));
+  getRecordedTestPaths().forEach((path) =>
+    test(
+      path.split(".")[0],
+      asyncSafety(() => runTest(path))
+    )
+  );
 });
 
 async function runTest(file: string) {
@@ -50,16 +55,18 @@ async function runTest(file: string) {
   const excludeFields: string[] = [];
 
   const cursorlessApi = await getCursorlessApi();
-  const parseTreeApi = await getParseTreeApi();
+  const graph = cursorlessApi.graph!;
 
-  await vscode.commands.executeCommand("workbench.action.closeAllEditors");
-  const document = await vscode.workspace.openTextDocument({
-    language: fixture.languageId,
-    content: fixture.initialState.documentContents,
-  });
-  const editor = await vscode.window.showTextDocument(document);
+  const editor = await openNewEditor(
+    fixture.initialState.documentContents,
+    fixture.languageId
+  );
 
-  await parseTreeApi.loadLanguage(document.languageId);
+  if (!fixture.initialState.documentContents.includes("\n")) {
+    await editor.edit((editBuilder) => {
+      editBuilder.setEndOfLine(vscode.EndOfLine.LF);
+    });
+  }
 
   editor.selections = fixture.initialState.selections.map(createSelection);
 
@@ -88,45 +95,67 @@ async function runTest(file: string) {
     excludeFields.push("clipboard");
   }
 
-  // Wait for cursorless to set up decorations
-  cursorlessApi.addDecorations();
+  await graph.hatTokenMap.addDecorations();
+
+  const readableHatMap = await graph.hatTokenMap.getReadableMap(false);
 
   // Assert that recorded decorations are present
-  Object.entries(fixture.marks).forEach(([key, token]) => {
-    const { hatStyle, character } = NavigationMap.splitKey(key);
-    const currentToken = cursorlessApi.navigationMap.getToken(
-      hatStyle,
-      character
-    );
-    assert(currentToken != null, `Mark "${hatStyle} ${character}" not found`);
-    assert.deepStrictEqual(rangeToPlainObject(currentToken.range), token);
-  });
+  checkMarks(fixture.initialState.marks, readableHatMap);
 
   const returnValue = await vscode.commands.executeCommand(
     "cursorless.command",
-    fixture.spokenForm,
-    fixture.command.actionName,
-    fixture.command.partialTargets,
-    ...fixture.command.extraArgs
+    fixture.command
   );
+
+  const marks =
+    fixture.finalState.marks == null
+      ? undefined
+      : marksToPlainObject(
+          extractTargetedMarks(
+            Object.keys(fixture.finalState.marks) as string[],
+            readableHatMap
+          )
+        );
 
   // TODO Visible ranges are not asserted, see:
   // https://github.com/pokey/cursorless-vscode/issues/160
   const { visibleRanges, ...resultState } = await takeSnapshot(
     cursorlessApi.thatMark,
     cursorlessApi.sourceMark,
-    excludeFields
+    excludeFields,
+    marks
   );
 
-  assert.deepStrictEqual(
-    resultState,
-    fixture.finalState,
-    "Unexpected final state"
-  );
+  if (process.env.CURSORLESS_TEST_UPDATE_FIXTURES === "true") {
+    const outputFixture = { ...fixture, finalState: resultState, returnValue };
+    await fsp.writeFile(file, serialize(outputFixture));
+  } else {
+    assert.deepStrictEqual(
+      resultState,
+      fixture.finalState,
+      "Unexpected final state"
+    );
 
-  assert.deepStrictEqual(
-    returnValue,
-    fixture.returnValue,
-    "Unexpected return value"
-  );
+    assert.deepStrictEqual(
+      returnValue,
+      fixture.returnValue,
+      "Unexpected return value"
+    );
+  }
+}
+
+function checkMarks(
+  marks: SerializedMarks | undefined,
+  hatTokenMap: ReadOnlyHatMap
+) {
+  if (marks == null) {
+    return;
+  }
+
+  Object.entries(marks).forEach(([key, token]) => {
+    const { hatStyle, character } = HatTokenMap.splitKey(key);
+    const currentToken = hatTokenMap.getToken(hatStyle, character);
+    assert(currentToken != null, `Mark "${hatStyle} ${character}" not found`);
+    assert.deepStrictEqual(rangeToPlainObject(currentToken.range), token);
+  });
 }

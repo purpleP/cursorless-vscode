@@ -10,56 +10,17 @@ import {
   HatColor,
 } from "./constants";
 import { readFileSync } from "fs";
-import { DecorationColorSetting } from "../typings/Types";
 import FontMeasurements from "./FontMeasurements";
-import { sortBy } from "lodash";
-
-interface ShapeMeasurements {
-  hatWidthToCharacterWidthRatio: number;
-  verticalOffsetEm: number;
-}
-
-interface IndividualHatAdjustment {
-  hatVerticalOffset: number;
-  hatSizeAdjustment: number;
-}
-
-type IndividualHatAdjustmentSetting = Record<HatShape, IndividualHatAdjustment>;
-
-const defaultShapeMeasurements: Record<HatShape, ShapeMeasurements> = {
-  default: {
-    hatWidthToCharacterWidthRatio: 0.507,
-    verticalOffsetEm: -0.05,
-  },
-  fourPointStar: {
-    hatWidthToCharacterWidthRatio: 0.6825,
-    verticalOffsetEm: -0.105,
-  },
-  threePointStar: {
-    hatWidthToCharacterWidthRatio: 0.9555,
-    verticalOffsetEm: -0.055,
-  },
-  chevron: {
-    hatWidthToCharacterWidthRatio: 0.6825,
-    verticalOffsetEm: -0.02,
-  },
-  hole: {
-    hatWidthToCharacterWidthRatio: 0.819,
-    verticalOffsetEm: -0.07,
-  },
-  frame: {
-    hatWidthToCharacterWidthRatio: 0.61425,
-    verticalOffsetEm: -0.02,
-  },
-  curve: {
-    hatWidthToCharacterWidthRatio: 0.6825,
-    verticalOffsetEm: -0.07,
-  },
-  eye: {
-    hatWidthToCharacterWidthRatio: 0.921375,
-    verticalOffsetEm: -0.12,
-  },
-};
+import { pull, sortBy } from "lodash";
+import getHatThemeColors from "./getHatThemeColors";
+import {
+  IndividualHatAdjustmentMap,
+  defaultShapeAdjustments,
+  DEFAULT_HAT_HEIGHT_EM,
+  DEFAULT_VERTICAL_OFFSET_EM,
+} from "./shapeAdjustments";
+import { Graph } from "../typings/Types";
+import isTesting from "../testUtil/isTesting";
 
 export type DecorationMap = {
   [k in HatStyleName]?: vscode.TextEditorDecorationType;
@@ -70,65 +31,106 @@ export interface NamedDecoration {
   decoration: vscode.TextEditorDecorationType;
 }
 
+type DecorationChangeListener = () => void;
+
 export default class Decorations {
   decorations!: NamedDecoration[];
   decorationMap!: DecorationMap;
-  hatStyleMap!: Record<HatStyleName, HatStyle>;
+  private hatStyleMap!: Record<HatStyleName, HatStyle>;
   hatStyleNames!: HatStyleName[];
+  private decorationChangeListeners: DecorationChangeListener[] = [];
+  private disposables: vscode.Disposable[] = [];
 
-  constructor(
-    fontMeasurements: FontMeasurements,
-    private extensionPath: string
-  ) {
-    this.constructDecorations(fontMeasurements);
+  constructor(private graph: Graph) {
+    graph.extensionContext.subscriptions.push(this);
+
+    this.recomputeDecorationStyles = this.recomputeDecorationStyles.bind(this);
+
+    this.disposables.push(
+      vscode.commands.registerCommand(
+        "cursorless.recomputeDecorationStyles",
+        () => {
+          graph.fontMeasurements.clearCache();
+          this.recomputeDecorationStyles();
+        }
+      ),
+
+      vscode.workspace.onDidChangeConfiguration(this.recomputeDecorationStyles)
+    );
   }
 
-  destroyDecorations() {
+  async init() {
+    await this.graph.fontMeasurements.calculate();
+    this.constructDecorations(this.graph.fontMeasurements);
+  }
+
+  /**
+   * Register to be notified when decoration styles are updated, for example if
+   * the user enables a new hat style
+   * @param listener A function to be called when decoration styles are updated
+   * @returns A function that can be called to unsubscribe from notifications
+   */
+  registerDecorationChangeListener(listener: DecorationChangeListener) {
+    this.decorationChangeListeners.push(listener);
+
+    return () => {
+      pull(this.decorationChangeListeners, listener);
+    };
+  }
+
+  private destroyDecorations() {
     this.decorations.forEach(({ decoration }) => {
       decoration.dispose();
     });
   }
 
-  constructDecorations(fontMeasurements: FontMeasurements) {
+  private async recomputeDecorationStyles() {
+    this.destroyDecorations();
+    await this.graph.fontMeasurements.calculate();
+    this.constructDecorations(this.graph.fontMeasurements);
+  }
+
+  private constructDecorations(fontMeasurements: FontMeasurements) {
     this.constructHatStyleMap();
 
-    const hatSizeAdjustment = vscode.workspace
+    const userSizeAdjustment = vscode.workspace
       .getConfiguration("cursorless")
       .get<number>(`hatSizeAdjustment`)!;
 
-    const userHatVerticalOffsetAdjustment = vscode.workspace
+    const userVerticalOffset = vscode.workspace
       .getConfiguration("cursorless")
       .get<number>(`hatVerticalOffset`)!;
 
-    const userIndividualHatAdjustments = vscode.workspace
+    const userIndividualAdjustments = vscode.workspace
       .getConfiguration("cursorless")
-      .get<IndividualHatAdjustmentSetting>("individualHatAdjustments")!;
+      .get<IndividualHatAdjustmentMap>("individualHatAdjustments")!;
 
     const hatSvgMap = Object.fromEntries(
       HAT_SHAPES.map((shape) => {
-        const { hatWidthToCharacterWidthRatio, verticalOffsetEm } =
-          defaultShapeMeasurements[shape];
+        const { sizeAdjustment = 0, verticalOffset = 0 } =
+          defaultShapeAdjustments[shape];
 
-        const individualHatSizeAdjustment =
-          userIndividualHatAdjustments[shape]?.hatSizeAdjustment ?? 0;
+        const {
+          sizeAdjustment: userIndividualSizeAdjustment = 0,
+          verticalOffset: userIndividualVerticalOffset = 0,
+        } = userIndividualAdjustments[shape] ?? {};
 
-        const hatScaleFactor =
-          1 + (hatSizeAdjustment + individualHatSizeAdjustment) / 100;
+        const scaleFactor =
+          1 +
+          (sizeAdjustment + userSizeAdjustment + userIndividualSizeAdjustment) /
+            100;
 
-        const individualVerticalOffsetAdjustment =
-          userIndividualHatAdjustments[shape]?.hatVerticalOffset ?? 0;
+        const finalVerticalOffsetEm =
+          (verticalOffset + userVerticalOffset + userIndividualVerticalOffset) /
+          100;
 
         return [
           shape,
           this.processSvg(
             fontMeasurements,
             shape,
-            hatScaleFactor * hatWidthToCharacterWidthRatio,
-            (verticalOffsetEm +
-              (userHatVerticalOffsetAdjustment +
-                individualVerticalOffsetAdjustment) /
-                100) *
-              fontMeasurements.fontSize
+            scaleFactor,
+            finalVerticalOffsetEm
           ),
         ];
       })
@@ -138,36 +140,25 @@ export default class Decorations {
       const { color, shape } = this.hatStyleMap[styleName];
       const { svg, svgWidthPx, svgHeightPx } = hatSvgMap[shape];
 
-      const spanWidthPx =
-        svgWidthPx + (fontMeasurements.characterWidth - svgWidthPx) / 2;
-
-      const colorSetting = vscode.workspace
-        .getConfiguration("cursorless.colors")
-        .get<DecorationColorSetting>(color)!;
+      const { light, dark } = getHatThemeColors(color);
 
       return {
         name: styleName,
         decoration: vscode.window.createTextEditorDecorationType({
           rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
           light: {
-            after: {
-              contentIconPath: this.constructColoredSvgDataUri(
-                svg,
-                colorSetting.light
-              ),
+            before: {
+              contentIconPath: this.constructColoredSvgDataUri(svg, light),
             },
           },
           dark: {
-            after: {
-              contentIconPath: this.constructColoredSvgDataUri(
-                svg,
-                colorSetting.dark
-              ),
+            before: {
+              contentIconPath: this.constructColoredSvgDataUri(svg, dark),
             },
           },
-          after: {
-            margin: `-${svgHeightPx}px 0 0 -${spanWidthPx}px`,
-            width: `${spanWidthPx}px`,
+          before: {
+            margin: `-${svgHeightPx}px -${svgWidthPx}px 0 0`,
+            width: `${svgWidthPx}px`,
             height: `${svgHeightPx}px`,
           },
         }),
@@ -177,6 +168,8 @@ export default class Decorations {
     this.decorationMap = Object.fromEntries(
       this.decorations.map(({ name, decoration }) => [name, decoration])
     );
+
+    this.decorationChangeListeners.forEach((listener) => listener());
   }
 
   private constructHatStyleMap() {
@@ -198,9 +191,10 @@ export default class Decorations {
     shapePenalties.default = 0;
     colorPenalties.default = 0;
 
-    const activeHatColors = HAT_COLORS.filter(
-      (color) => colorEnablement[color]
-    );
+    // So that unit tests don't fail locally if you have some colors disabled
+    const activeHatColors = isTesting()
+      ? HAT_COLORS
+      : HAT_COLORS.filter((color) => colorEnablement[color]);
     const activeNonDefaultHatShapes = HAT_NON_DEFAULT_SHAPES.filter(
       (shape) => shapeEnablement[shape]
     );
@@ -249,37 +243,47 @@ export default class Decorations {
    * [This image](../images/svg-calculations.png) may or may not be helpful.
    *
    * @param fontMeasurements Info about the user's font
-   * @param hatWidthToCharacterWidthRatio How wide should hats be relative to character width
-   * @param hatVerticalOffset How far off top of characters should hats be
+   * @param shape The hat shape to process
+   * @param scaleFactor How much to scale the hat
+   * @param hatVerticalOffsetEm How far off top of characters should hats be
    * @returns An object with the new SVG and its measurements
    */
   private processSvg(
     fontMeasurements: FontMeasurements,
     shape: HatShape,
-    hatWidthToCharacterWidthRatio: number,
-    hatVerticalOffset: number
+    scaleFactor: number,
+    hatVerticalOffsetEm: number
   ) {
-    const iconPath = join(this.extensionPath, "images", "hats", `${shape}.svg`);
+    const iconPath = join(
+      this.graph.extensionContext.extensionPath,
+      "images",
+      "hats",
+      `${shape}.svg`
+    );
     const rawSvg = readFileSync(iconPath, "utf8");
+    const { characterWidth, characterHeight, fontSize } = fontMeasurements;
 
     const { originalViewBoxHeight, originalViewBoxWidth } =
       this.getViewBoxDimensions(rawSvg);
 
-    const hatWidthPx =
-      hatWidthToCharacterWidthRatio * fontMeasurements.characterWidth;
-    const hatHeightPx =
-      (originalViewBoxHeight / originalViewBoxWidth) * hatWidthPx;
+    const defaultHatHeightPx = DEFAULT_HAT_HEIGHT_EM * fontSize;
+    const defaultHatWidthPx =
+      (originalViewBoxWidth / originalViewBoxHeight) * defaultHatHeightPx;
 
-    const svgWidthPx = Math.ceil(fontMeasurements.characterWidth);
-    const svgHeightPx =
-      fontMeasurements.characterHeight + hatHeightPx + hatVerticalOffset;
+    const hatHeightPx = defaultHatHeightPx * scaleFactor;
+    const hatWidthPx = defaultHatWidthPx * scaleFactor;
 
-    const newViewBoxWidth =
-      ((originalViewBoxWidth / hatWidthToCharacterWidthRatio) *
-        fontMeasurements.characterWidth) /
-      svgWidthPx;
-    const newViewBoxHeight = (newViewBoxWidth * svgHeightPx) / svgWidthPx;
-    const newViewBoxX = -(newViewBoxWidth - originalViewBoxWidth) / 2;
+    const hatVerticalOffsetPx =
+      (DEFAULT_VERTICAL_OFFSET_EM + hatVerticalOffsetEm) * fontSize -
+      hatHeightPx / 2;
+
+    const svgWidthPx = Math.ceil(characterWidth);
+    const svgHeightPx = characterHeight + hatHeightPx + hatVerticalOffsetPx;
+
+    const newViewBoxWidth = originalViewBoxWidth * (svgWidthPx / hatWidthPx);
+    const newViewBoxHeight = newViewBoxWidth * (svgHeightPx / svgWidthPx);
+    const newViewBoxX =
+      (-(characterWidth - hatWidthPx) * (newViewBoxWidth / svgWidthPx)) / 2;
     const newViewBoxY = 0;
 
     const newViewBoxString = `${newViewBoxX} ${newViewBoxY} ${newViewBoxWidth} ${newViewBoxHeight}`;
@@ -317,5 +321,10 @@ export default class Decorations {
     const originalViewBoxHeight = Number(originalViewBoxHeightStr);
 
     return { originalViewBoxHeight, originalViewBoxWidth };
+  }
+
+  dispose() {
+    this.destroyDecorations();
+    this.disposables.forEach(({ dispose }) => dispose());
   }
 }

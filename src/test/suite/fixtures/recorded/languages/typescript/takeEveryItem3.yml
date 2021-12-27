@@ -1,12 +1,11 @@
-spokenForm: take every item
 languageId: typescript
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take every item
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: collectionItem, includeSiblings: true}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: |
 
@@ -14,6 +13,7 @@ initialState:
   selections:
     - anchor: {line: 1, character: 10}
       active: {line: 1, character: 10}
+  marks: {}
 finalState:
   documentContents: |
 

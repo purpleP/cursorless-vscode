@@ -14,23 +14,37 @@ import {
   setSelectionsAndFocusEditor,
 } from "../util/setSelectionsAndFocusEditor";
 import { flatten } from "lodash";
-import { callFunctionAndUpdateSelections } from "../util/updateSelections";
 import { ensureSingleEditor } from "../util/targetUtils";
+import { callFunctionAndUpdateSelections } from "../core/updateSelections/updateSelections";
+
+export interface CommandOptions {
+  command?: string;
+  commandArgs?: any[];
+  restoreSelection?: boolean;
+  ensureSingleEditor?: boolean;
+  showDecorations?: boolean;
+}
+
+const defaultOptions: CommandOptions = {
+  commandArgs: [],
+  restoreSelection: true,
+  ensureSingleEditor: false,
+  showDecorations: false,
+};
 
 export default class CommandAction implements Action {
-  targetPreferences: ActionPreferences[] = [{ insideOutsideType: "inside" }];
-  private ensureSingleEditor: boolean;
+  getTargetPreferences: () => ActionPreferences[] = () => [
+    { insideOutsideType: "inside" },
+  ];
 
-  constructor(
-    private graph: Graph,
-    private command: string,
-    { ensureSingleEditor = false } = {}
-  ) {
+  constructor(private graph: Graph, private options: CommandOptions = {}) {
     this.run = this.run.bind(this);
-    this.ensureSingleEditor = ensureSingleEditor;
   }
 
-  private async runCommandAndUpdateSelections(targets: TypedSelection[]) {
+  private async runCommandAndUpdateSelections(
+    targets: TypedSelection[],
+    options: Required<CommandOptions>
+  ) {
     return flatten(
       await runOnTargetsForEachEditor<SelectionWithEditor[]>(
         targets,
@@ -46,13 +60,20 @@ export default class CommandAction implements Action {
 
           const [updatedOriginalSelections, updatedTargetSelections] =
             await callFunctionAndUpdateSelections(
-              () => commands.executeCommand(this.command),
-              editor,
+              this.graph.rangeUpdater,
+              () =>
+                commands.executeCommand(
+                  options.command,
+                  ...options.commandArgs
+                ),
+              editor.document,
               [originalSelections, targetSelections]
             );
 
           // Reset original selections
-          editor.selections = updatedOriginalSelections;
+          if (options.restoreSelection) {
+            editor.selections = updatedOriginalSelections;
+          }
 
           return updatedTargetSelections.map((selection) => ({
             editor,
@@ -65,25 +86,45 @@ export default class CommandAction implements Action {
 
   async run(
     [targets]: [TypedSelection[]],
-    { showDecorations = true } = {}
+    options: CommandOptions = {}
   ): Promise<ActionReturnValue> {
-    if (showDecorations) {
+    const partialOptions = Object.assign(
+      {},
+      defaultOptions,
+      this.options,
+      options
+    );
+
+    if (partialOptions.command == null) {
+      throw Error("Command id must be specified");
+    }
+
+    const actualOptions = partialOptions as Required<CommandOptions>;
+
+    if (actualOptions.showDecorations) {
       await displayPendingEditDecorations(
         targets,
         this.graph.editStyles.referenced
       );
     }
 
-    if (this.ensureSingleEditor) {
+    if (actualOptions.ensureSingleEditor) {
       ensureSingleEditor(targets);
     }
 
     const originalEditor = window.activeTextEditor;
 
-    const thatMark = await this.runCommandAndUpdateSelections(targets);
+    const thatMark = await this.runCommandAndUpdateSelections(
+      targets,
+      actualOptions
+    );
 
     // If necessary focus back original editor
-    if (originalEditor != null && originalEditor !== window.activeTextEditor) {
+    if (
+      actualOptions.restoreSelection &&
+      originalEditor != null &&
+      originalEditor !== window.activeTextEditor
+    ) {
       await focusEditor(originalEditor);
     }
 

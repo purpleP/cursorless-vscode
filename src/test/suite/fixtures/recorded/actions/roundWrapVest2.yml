@@ -1,15 +1,12 @@
-spokenForm: round wrap vest
 languageId: typescript
 command:
-  actionName: wrapWithPairedDelimiter
-  partialTargets:
+  version: 1
+  spokenForm: round wrap vest
+  action: wrapWithPairedDelimiter
+  targets:
     - type: primitive
       mark: {type: decoratedSymbol, symbolColor: default, character: v}
   extraArgs: [(, )]
-marks:
-  default.v:
-    start: {line: 1, character: 6}
-    end: {line: 1, character: 11}
 initialState:
   documentContents: |
 
@@ -17,6 +14,10 @@ initialState:
   selections:
     - anchor: {line: 1, character: 12}
       active: {line: 1, character: 12}
+  marks:
+    default.v:
+      start: {line: 1, character: 6}
+      end: {line: 1, character: 11}
 finalState:
   documentContents: |
 

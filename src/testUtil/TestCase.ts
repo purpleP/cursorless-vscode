@@ -1,31 +1,37 @@
 import * as vscode from "vscode";
-import NavigationMap from "../core/NavigationMap";
+import HatTokenMap from "../core/HatTokenMap";
 import { ThatMark } from "../core/ThatMark";
-import { ActionType, PartialTarget, Target } from "../typings/Types";
-import { extractTargetedMarks } from "./extractTargetedMarks";
+import { ActionType, PartialTarget, Target, Token } from "../typings/Types";
+import {
+  extractTargetedMarks,
+  extractTargetKeys,
+} from "./extractTargetedMarks";
 import { marksToPlainObject, SerializedMarks } from "./toPlainObject";
 import { takeSnapshot, TestCaseSnapshot } from "./takeSnapshot";
 import serialize from "./serialize";
+import { pick } from "lodash";
+import { ReadOnlyHatMap } from "../core/IndividualHatMap";
+import { CommandArgument } from "../core/commandRunner/types";
+import { cleanUpTestCaseCommand } from "./cleanUpTestCaseCommand";
 
-type TestCaseCommand = {
-  actionName: ActionType;
-  partialTargets: PartialTarget[];
-  extraArgs: any[];
-};
+export type TestCaseCommand = CommandArgument;
 
-type TestCaseContext = {
-  spokenForm: string;
+export type TestCaseContext = {
   thatMark: ThatMark;
   sourceMark: ThatMark;
   targets: Target[];
-  navigationMap: NavigationMap;
+  hatTokenMap: ReadOnlyHatMap;
 };
 
 export type TestCaseFixture = {
-  spokenForm: string;
-  command: TestCaseCommand;
   languageId: string;
-  marks: SerializedMarks;
+  command: TestCaseCommand;
+
+  /**
+   * A list of marks to check in the case of navigation map test otherwise undefined
+   */
+  marksToCheck?: string[];
+
   initialState: TestCaseSnapshot;
   finalState: TestCaseSnapshot;
   returnValue: unknown;
@@ -34,27 +40,48 @@ export type TestCaseFixture = {
 };
 
 export class TestCase {
-  spokenForm: string;
-  command: TestCaseCommand;
   languageId: string;
   fullTargets: Target[];
-  marks: SerializedMarks;
-  context: TestCaseContext;
   initialState: TestCaseSnapshot | null = null;
   finalState: TestCaseSnapshot | null = null;
   returnValue: unknown = null;
+  targetKeys: string[];
+  private _awaitingFinalMarkInfo: boolean;
+  marksToCheck?: string[];
+  public command: TestCaseCommand;
 
-  constructor(command: TestCaseCommand, context: TestCaseContext) {
+  constructor(
+    command: TestCaseCommand,
+    private context: TestCaseContext,
+    private isHatTokenMapTest: boolean = false
+  ) {
     const activeEditor = vscode.window.activeTextEditor!;
-    const { navigationMap, targets, spokenForm } = context;
-    const targetedMarks = extractTargetedMarks(targets, navigationMap);
+    this.command = cleanUpTestCaseCommand(command);
 
-    this.spokenForm = spokenForm;
-    this.command = command;
+    const { targets } = context;
+
+    this.targetKeys = targets.map(extractTargetKeys).flat();
+
     this.languageId = activeEditor.document.languageId;
-    this.marks = marksToPlainObject(targetedMarks);
     this.fullTargets = targets;
-    this.context = context;
+    this._awaitingFinalMarkInfo = isHatTokenMapTest;
+  }
+
+  private getMarks() {
+    let marks: Record<string, Token>;
+
+    const { hatTokenMap } = this.context;
+
+    if (this.isHatTokenMapTest) {
+      // If we're doing a navigation map test, then we grab the entire
+      // navigation map because we'll filter it later based on the marks
+      // referenced in the expected follow up command
+      marks = Object.fromEntries(hatTokenMap.getEntries());
+    } else {
+      marks = extractTargetedMarks(this.targetKeys, hatTokenMap);
+    }
+
+    return marksToPlainObject(marks);
   }
 
   private includesThatMark(target: Target, type: string): boolean {
@@ -74,7 +101,7 @@ export class TestCase {
 
   private getExcludedFields(context?: { initialSnapshot?: boolean }) {
     const excludableFields = {
-      clipboard: !["copy", "paste"].includes(this.command.actionName),
+      clipboard: !["copy", "paste"].includes(this.command.action),
       thatMark:
         context?.initialSnapshot &&
         !this.fullTargets.some((target) =>
@@ -91,7 +118,7 @@ export class TestCase {
         "scrollToBottom",
         "scrollToCenter",
         "scrollToTop",
-      ].includes(this.command.actionName),
+      ].includes(this.command.action),
     };
 
     return Object.keys(excludableFields).filter(
@@ -104,10 +131,9 @@ export class TestCase {
       throw Error("Two snapshots must be taken before serializing");
     }
     const fixture: TestCaseFixture = {
-      spokenForm: this.spokenForm,
       languageId: this.languageId,
       command: this.command,
-      marks: this.marks,
+      marksToCheck: this.marksToCheck,
       initialState: this.initialState,
       finalState: this.finalState,
       returnValue: this.returnValue,
@@ -121,7 +147,8 @@ export class TestCase {
     this.initialState = await takeSnapshot(
       this.context.thatMark,
       this.context.sourceMark,
-      excludeFields
+      excludeFields,
+      this.getMarks()
     );
   }
 
@@ -131,7 +158,31 @@ export class TestCase {
     this.finalState = await takeSnapshot(
       this.context.thatMark,
       this.context.sourceMark,
-      excludeFields
+      excludeFields,
+      this.isHatTokenMapTest ? this.getMarks() : undefined
     );
+  }
+
+  filterMarks(command: TestCaseCommand, context: TestCaseContext) {
+    const marksToCheck = context.targets.map(extractTargetKeys).flat();
+    const keys = this.targetKeys.concat(marksToCheck);
+
+    this.initialState!.marks = pick(
+      this.initialState!.marks,
+      keys
+    ) as SerializedMarks;
+
+    this.finalState!.marks = pick(
+      this.finalState!.marks,
+      keys
+    ) as SerializedMarks;
+
+    this.marksToCheck = marksToCheck;
+
+    this._awaitingFinalMarkInfo = false;
+  }
+
+  get awaitingFinalMarkInfo() {
+    return this._awaitingFinalMarkInfo;
   }
 }

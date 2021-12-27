@@ -2,7 +2,11 @@ import { SyntaxNode } from "web-tree-sitter";
 import {
   createPatternMatchers,
   argumentMatcher,
-  valueMatcher,
+  leadingMatcher,
+  trailingMatcher,
+  cascadingMatcher,
+  patternMatcher,
+  conditionMatcher,
 } from "../util/nodeMatchers";
 import { NodeMatcherAlternative, ScopeType } from "../typings/Types";
 
@@ -46,16 +50,17 @@ const nodeMatchers: Partial<Record<ScopeType, NodeMatcherAlternative>> = {
   list: listTypes,
   statement: STATEMENT_TYPES,
   string: "string",
-  collectionKey: "pair[key]",
+  collectionKey: trailingMatcher(["pair[key]"], [":"]),
   ifStatement: "if_statement",
-  anonymousFunction: "lambda",
+  anonymousFunction: "lambda?.lambda",
   functionCall: "call",
   comment: "comment",
   class: "decorated_definition?.class_definition",
   className: "class_definition[name]",
   namedFunction: "decorated_definition?.function_definition",
   functionName: "function_definition[name]",
-  type: valueMatcher("function_definition[return_type]", "*[type]"),
+  condition: conditionMatcher("*[condition]"),
+  type: leadingMatcher(["function_definition[return_type]", "*[type]"], [":", "->"]),
   name: [
     "assignment[left]",
     "typed_parameter.identifier!",
@@ -63,7 +68,10 @@ const nodeMatchers: Partial<Record<ScopeType, NodeMatcherAlternative>> = {
     "*[name]",
   ],
   collectionItem: argumentMatcher(...dictionaryTypes, ...listTypes),
-  value: valueMatcher("assignment[right]", "~subscript[value]"),
+  value: cascadingMatcher(
+    leadingMatcher(["assignment[right]", "~subscript[value]"], ["=", ":"]),
+    patternMatcher("return_statement.~return!")
+  ),
   argumentOrParameter: argumentMatcher("parameters", "argument_list"),
 };
 

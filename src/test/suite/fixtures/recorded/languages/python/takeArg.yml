@@ -1,12 +1,11 @@
-spokenForm: take arg
 languageId: python
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take arg
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: argumentOrParameter}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: |
 
@@ -15,6 +14,7 @@ initialState:
   selections:
     - anchor: {line: 1, character: 12}
       active: {line: 1, character: 12}
+  marks: {}
 finalState:
   documentContents: |
 

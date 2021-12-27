@@ -75,6 +75,7 @@ function inferRangeTarget(
     type: "range",
     excludeAnchor: target.excludeStart ?? false,
     excludeActive: target.excludeEnd ?? false,
+    rangeType: target.rangeType ?? "continuous",
     anchor: inferPrimitiveTarget(
       target.start,
       previousTargets,
@@ -93,16 +94,20 @@ function inferPrimitiveTarget(
   previousTargets: PartialTarget[],
   actionPreferences: ActionPreferences
 ): PrimitiveTarget {
-  const previousTargetsForAttributes = hasContent(target)
-    ? []
-    : previousTargets;
+  const doAttributeInference = !hasContent(target) && !target.isImplicit;
+
+  const previousTargetsForAttributes = doAttributeInference
+    ? previousTargets
+    : [];
 
   const maybeSelectionType =
     target.selectionType ??
     getPreviousAttribute(previousTargetsForAttributes, "selectionType");
 
   const mark = target.mark ??
-    getPreviousMark(previousTargets) ?? {
+    (target.position === "before" || target.position === "after"
+      ? getPreviousMark(previousTargets)
+      : null) ?? {
       type: maybeSelectionType === "token" ? "cursorToken" : "cursor",
     };
 
@@ -113,7 +118,9 @@ function inferPrimitiveTarget(
     "contents";
 
   const selectionType =
-    maybeSelectionType ?? actionPreferences.selectionType ?? "token";
+    maybeSelectionType ??
+    (doAttributeInference ? actionPreferences.selectionType : null) ??
+    "token";
 
   const insideOutsideType =
     target.insideOutsideType ??
@@ -121,7 +128,8 @@ function inferPrimitiveTarget(
     actionPreferences.insideOutsideType;
 
   const modifier = target.modifier ??
-    getPreviousAttribute(previousTargetsForAttributes, "modifier") ?? {
+    getPreviousAttribute(previousTargetsForAttributes, "modifier") ??
+    (doAttributeInference ? actionPreferences.modifier : null) ?? {
       type: "identity",
     };
 
@@ -132,6 +140,7 @@ function inferPrimitiveTarget(
     position,
     insideOutsideType,
     modifier,
+    isImplicit: target.isImplicit ?? false,
   };
 }
 
@@ -174,9 +183,6 @@ function getPreviousTarget(
         }
         break;
       case "range":
-        if (useTarget(target.end)) {
-          return target.end;
-        }
         if (useTarget(target.start)) {
           return target.start;
         }

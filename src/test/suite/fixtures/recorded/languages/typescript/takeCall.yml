@@ -1,12 +1,11 @@
-spokenForm: take call
 languageId: typescript
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take call
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: functionCall}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: |
 
@@ -14,6 +13,7 @@ initialState:
   selections:
     - anchor: {line: 1, character: 1}
       active: {line: 1, character: 1}
+  marks: {}
 finalState:
   documentContents: |
 

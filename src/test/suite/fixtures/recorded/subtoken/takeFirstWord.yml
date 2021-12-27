@@ -1,18 +1,18 @@
-spokenForm: take first word
 languageId: typescript
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take first word
+  action: setSelection
+  targets:
     - type: primitive
       selectionType: token
       modifier: {type: subpiece, pieceType: word, anchor: 0, active: 0}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: ;helloThere;
   selections:
     - anchor: {line: 0, character: 11}
       active: {line: 0, character: 11}
+  marks: {}
 finalState:
   documentContents: ;helloThere;
   selections:

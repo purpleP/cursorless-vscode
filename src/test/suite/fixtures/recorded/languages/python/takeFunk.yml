@@ -1,12 +1,11 @@
-spokenForm: take funk
 languageId: python
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take funk
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: namedFunction}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: |
 
@@ -15,6 +14,7 @@ initialState:
   selections:
     - anchor: {line: 2, character: 4}
       active: {line: 2, character: 4}
+  marks: {}
 finalState:
   documentContents: |
 

@@ -2,6 +2,7 @@ import { Position, Range, TextDocument } from "vscode";
 import {
   selectionFromPositions,
   selectionWithEditorFromPositions,
+  selectionWithEditorFromRange,
 } from "../util/selectionUtils";
 import {
   InsideOutsideType,
@@ -13,6 +14,7 @@ import {
   TypedSelection,
   Position as TargetPosition,
 } from "../typings/Types";
+import { getDocumentRange } from "../util/range";
 
 export default function (
   context: ProcessedTargetsContext,
@@ -60,13 +62,22 @@ function processToken(
     selectionType,
     position,
     insideOutsideType,
-    selectionContext: getTokenSelectionContext(
-      selection,
-      modifier,
-      position,
-      insideOutsideType,
-      selectionContext
-    ),
+    // NB: This is a hack to work around the fact that it's not currently
+    // possible to apply a modifier after processing the selection type. We
+    // would really prefer that the user be able to say "just" and have that be
+    // processed after we've processed the selection type, which would strip
+    // away the type information and turn it into a raw target. Until that's
+    // possible using the new pipelines, we instead just check for it here when
+    // we're doing the selection type and bail out if it is a raw target.
+    selectionContext: selectionContext.isRawSelection
+      ? selectionContext
+      : getTokenSelectionContext(
+          selection,
+          modifier,
+          position,
+          insideOutsideType,
+          selectionContext
+        ),
   };
 }
 
@@ -76,12 +87,10 @@ function processDocument(
   selectionContext: SelectionContext
 ) {
   const { selectionType, insideOutsideType, position } = target;
-  const { document } = selection.editor;
-  const firstLine = document.lineAt(0);
-  const lastLine = document.lineAt(document.lineCount - 1);
-  const start = firstLine.range.start;
-  const end = lastLine.range.end;
-  const newSelection = selectionWithEditorFromPositions(selection, start, end);
+  const newSelection = selectionWithEditorFromRange(
+    selection,
+    getDocumentRange(selection.editor.document)
+  );
 
   return {
     selection: newSelection,
@@ -213,17 +222,23 @@ function getTokenSelectionContext(
         : null;
   }
 
-  const isInDelimitedList =
-    (leadingDelimiterRange != null || trailingDelimiterRange != null) &&
-    (leadingDelimiterRange != null || start.character === 0) &&
-    (trailingDelimiterRange != null || end.isEqual(endLine.range.end));
+  let isInDelimitedList;
+  if (position === "contents") {
+    isInDelimitedList =
+      (leadingDelimiterRange != null || trailingDelimiterRange != null) &&
+      (leadingDelimiterRange != null || start.character === 0) &&
+      (trailingDelimiterRange != null || end.isEqual(endLine.range.end));
+  } else {
+    isInDelimitedList =
+      leadingDelimiterRange != null || trailingDelimiterRange != null;
+  }
 
   return {
+    ...selectionContext,
     isInDelimitedList,
     containingListDelimiter: " ",
     leadingDelimiterRange: isInDelimitedList ? leadingDelimiterRange : null,
     trailingDelimiterRange: isInDelimitedList ? trailingDelimiterRange : null,
-    outerSelection: selectionContext.outerSelection,
   };
 }
 

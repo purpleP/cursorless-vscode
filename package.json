@@ -7,7 +7,7 @@
 		"color": "#00001A",
 		"theme": "dark"
 	},
-	"version": "0.21.0",
+	"version": "0.24.1",
 	"publisher": "pokey",
 	"license": "MIT",
 	"repository": {
@@ -15,7 +15,7 @@
 		"url": "https://github.com/pokey/cursorless-vscode.git"
 	},
 	"engines": {
-		"vscode": "^1.53.0"
+		"vscode": "^1.61.0"
 	},
 	"extensionKind": [
 		"workspace"
@@ -101,6 +101,9 @@
 				}
 			}
 		],
+		"configurationDefaults": {
+			"editor.padding.top": 2
+		},
 		"configuration": {
 			"title": "Cursorless",
 			"properties": {
@@ -109,15 +112,15 @@
 					"default": true,
 					"description": "Whether to show decorations on vscode start."
 				},
+				"cursorless.debug": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to show debug logs."
+				},
 				"cursorless.pendingEditDecorationTime": {
 					"type": "integer",
 					"default": 100,
 					"description": "How long in milliseconds to show a pending edit decoration"
-				},
-				"cursorless.showAdditionalHighlightBeforeScroll": {
-					"type": "boolean",
-					"default": false,
-					"description": "Whether to show a highlight before scrolling in addition to after"
 				},
 				"cursorless.hatSizeAdjustment": {
 					"type": "number",
@@ -129,59 +132,71 @@
 					"default": 0,
 					"description": "How much to vertically shift the hats as a percentage of font size; positive is up"
 				},
-				"cursorless.colors.default": {
-					"description": "Color to use for default symbols",
+				"cursorless.colors.dark": {
+					"description": "Colors to use for dark theme",
 					"type": "object",
+					"properties": {
+						"default": {
+							"type": "string"
+						},
+						"blue": {
+							"type": "string"
+						},
+						"green": {
+							"type": "string"
+						},
+						"red": {
+							"type": "string"
+						},
+						"pink": {
+							"type": "string"
+						},
+						"yellow": {
+							"type": "string"
+						}
+					},
 					"default": {
-						"dark": "#cdc7f0",
-						"light": "#000000",
-						"highContrast": "#000000"
-					}
+						"default": "#aaa7bb",
+						"blue": "#089ad3",
+						"green": "#36B33F",
+						"red": "#E02D28",
+						"pink": "#E06CAA",
+						"yellow": "#E5C02C"
+					},
+					"additionalProperties": false
 				},
-				"cursorless.colors.green": {
-					"description": "Color to use for green symbols",
+				"cursorless.colors.light": {
+					"description": "Colors to use for light theme",
 					"type": "object",
+					"properties": {
+						"default": {
+							"type": "string"
+						},
+						"blue": {
+							"type": "string"
+						},
+						"green": {
+							"type": "string"
+						},
+						"red": {
+							"type": "string"
+						},
+						"pink": {
+							"type": "string"
+						},
+						"yellow": {
+							"type": "string"
+						}
+					},
 					"default": {
-						"dark": "#22d618",
-						"light": "#2ec426",
-						"highContrast": "#2ec426"
-					}
-				},
-				"cursorless.colors.red": {
-					"description": "Color to use for red symbols",
-					"type": "object",
-					"default": {
-						"dark": "#e96900",
-						"light": "#ff3300",
-						"highContrast": "#ff3300"
-					}
-				},
-				"cursorless.colors.yellow": {
-					"description": "Color to use for yellow symbols",
-					"type": "object",
-					"default": {
-						"dark": "#f1cd00",
-						"light": "#f0b800",
-						"highContrast": "#f0b800"
-					}
-				},
-				"cursorless.colors.purple": {
-					"description": "Color to use for purple symbols",
-					"type": "object",
-					"default": {
-						"dark": "#de25ff",
-						"light": "#ff00f2",
-						"highContrast": "#ff00f2"
-					}
-				},
-				"cursorless.colors.blue": {
-					"description": "Color to use for blue symbols",
-					"type": "object",
-					"default": {
-						"dark": "#00b7ff",
-						"light": "#19a1d6",
-						"highContrast": "#19a1d6"
-					}
+						"default": "#757180",
+						"blue": "#089ad3",
+						"green": "#36B33F",
+						"red": "#E02D28",
+						"pink": "#e0679f",
+						"yellow": "#edb62b"
+					},
+					"additionalProperties": false
 				},
 				"cursorless.hatEnablement.colors": {
 					"description": "Which colors to enable",
@@ -196,10 +211,10 @@
 						"red": {
 							"type": "boolean"
 						},
-						"yellow": {
+						"pink": {
 							"type": "boolean"
 						},
-						"purple": {
+						"yellow": {
 							"type": "boolean"
 						}
 					},
@@ -207,22 +222,22 @@
 						"blue": true,
 						"green": true,
 						"red": true,
-						"yellow": true,
-						"purple": true
+						"pink": true,
+						"yellow": true
 					},
 					"additionalProperties": false
 				},
 				"cursorless.hatEnablement.shapes": {
-					"description": "Which shapes to enable",
+					"markdownDescription": "Which shapes to enable.  See the [docs](https://github.com/pokey/cursorless-talon/blob/main/docs/README.md#shapes) if you're not sure which shape name corresponds to which hat shape.",
 					"type": "object",
 					"properties": {
-						"fourPointStar": {
+						"ex": {
 							"type": "boolean"
 						},
-						"chevron": {
+						"fox": {
 							"type": "boolean"
 						},
-						"threePointStar": {
+						"wing": {
 							"type": "boolean"
 						},
 						"hole": {
@@ -236,16 +251,28 @@
 						},
 						"eye": {
 							"type": "boolean"
+						},
+						"play": {
+							"type": "boolean"
+						},
+						"bolt": {
+							"type": "boolean"
+						},
+						"crosshairs": {
+							"type": "boolean"
 						}
 					},
 					"default": {
-						"fourPointStar": true,
-						"chevron": true,
-						"threePointStar": false,
+						"ex": false,
+						"fox": false,
+						"wing": false,
 						"hole": false,
 						"frame": false,
 						"curve": false,
-						"eye": false
+						"eye": false,
+						"play": false,
+						"bolt": false,
+						"crosshairs": false
 					},
 					"additionalProperties": false
 				},
@@ -262,10 +289,10 @@
 						"red": {
 							"type": "number"
 						},
-						"yellow": {
+						"pink": {
 							"type": "number"
 						},
-						"purple": {
+						"yellow": {
 							"type": "number"
 						}
 					},
@@ -273,8 +300,8 @@
 						"blue": 1,
 						"green": 1,
 						"red": 1,
-						"yellow": 1,
-						"purple": 1
+						"pink": 1,
+						"yellow": 1
 					},
 					"additionalProperties": false
 				},
@@ -282,13 +309,13 @@
 					"description": "How much to penalize each hat shape. Number of syllables is a good default",
 					"type": "object",
 					"properties": {
-						"fourPointStar": {
+						"ex": {
 							"type": "number"
 						},
-						"chevron": {
+						"fox": {
 							"type": "number"
 						},
-						"threePointStar": {
+						"wing": {
 							"type": "number"
 						},
 						"hole": {
@@ -302,26 +329,101 @@
 						},
 						"eye": {
 							"type": "number"
+						},
+						"play": {
+							"type": "number"
+						},
+						"bolt": {
+							"type": "number"
+						},
+						"crosshairs": {
+							"type": "number"
 						}
 					},
 					"default": {
-						"fourPointStar": 1,
-						"chevron": 1,
-						"threePointStar": 1,
+						"ex": 1,
+						"fox": 1,
+						"wing": 1,
 						"hole": 1,
 						"frame": 1,
 						"curve": 1,
-						"eye": 1
+						"eye": 1,
+						"play": 1,
+						"bolt": 1,
+						"crosshairs": 1
 					},
 					"additionalProperties": false
 				},
 				"cursorless.individualHatAdjustments": {
 					"description": "Separate adjustments for each hat shape",
 					"type": "object",
-					"default": {}
+					"default": {
+						"default": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"ex": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"fox": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"wing": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"hole": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"frame": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"curve": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"eye": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"play": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"bolt": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						},
+						"crosshairs": {
+							"sizeAdjustment": 0,
+							"verticalOffset": 0
+						}
+					}
+				},
+				"cursorless.experimental.snippetsDir": {
+					"description": "Directory containing snippets for use in cursorless",
+					"type": "string"
 				}
 			}
-		}
+		},
+		"languages": [
+			{
+				"id": "json",
+				"extensions": [
+					".cursorless-snippets"
+				]
+			}
+		],
+		"jsonValidation": [
+			{
+				"fileMatch": "*.cursorless-snippets",
+				"url": "./schemas/cursorless-snippets.json"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run -S esbuild-base -- --minify",
@@ -333,24 +435,25 @@
 		"watch": "tsc -watch -p ./",
 		"pretest": "yarn run compile && yarn run lint && yarn run esbuild",
 		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js"
+		"test": "env CURSORLESS_TEST=true node ./out/test/runTest.js"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.3",
 		"@types/js-yaml": "^4.0.2",
 		"@types/mocha": "^8.0.4",
-		"@types/node": "^12.11.7",
+		"@types/node": "^16.11.3",
 		"@types/sinon": "^10.0.2",
-		"@types/vscode": "^1.53.0",
+		"@types/vscode": "^1.61.0",
 		"@typescript-eslint/eslint-plugin": "^4.9.0",
 		"@typescript-eslint/parser": "^4.9.0",
 		"esbuild": "^0.11.12",
 		"eslint": "^7.15.0",
+		"fast-xml-parser": "^3.20.0",
 		"glob": "^7.1.7",
 		"js-yaml": "^4.1.0",
 		"mocha": "^8.1.3",
 		"sinon": "^11.1.1",
-		"typescript": "^4.1.2",
+		"typescript": "^4.4.4",
 		"vscode-test": "^1.4.1"
 	},
 	"dependencies": {

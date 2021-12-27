@@ -1,19 +1,27 @@
-spokenForm: take item
 languageId: json
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take item
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: collectionItem}
-  extraArgs: []
-marks: {}
 initialState:
-  documentContents: "\r\n{\r\n    \"foo\": [1, 2, 3]\r\n}\r\n"
+  documentContents: |
+
+    {
+        "foo": [1, 2, 3]
+    }
   selections:
     - anchor: {line: 2, character: 13}
       active: {line: 2, character: 13}
+  marks: {}
 finalState:
-  documentContents: "\r\n{\r\n    \"foo\": [1, 2, 3]\r\n}\r\n"
+  documentContents: |
+
+    {
+        "foo": [1, 2, 3]
+    }
   selections:
     - anchor: {line: 2, character: 12}
       active: {line: 2, character: 13}

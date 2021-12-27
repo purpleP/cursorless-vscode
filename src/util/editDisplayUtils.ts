@@ -1,11 +1,10 @@
 import { TextEditorDecorationType, workspace } from "vscode";
 import { TypedSelection, SelectionWithEditor } from "../typings/Types";
 import { isLineSelectionType } from "./selectionType";
-import { promisify } from "util";
 import { runOnTargetsForEachEditor, runForEachEditor } from "./targetUtils";
 import { EditStyle } from "../core/editStyles";
-
-const sleep = promisify(setTimeout);
+import isTesting from "../testUtil/isTesting";
+import sleep from "./sleep";
 
 const getPendingEditDecorationTime = () =>
   workspace
@@ -13,7 +12,7 @@ const getPendingEditDecorationTime = () =>
     .get<number>("pendingEditDecorationTime")!;
 
 export async function decorationSleep() {
-  if (process.env.CURSORLESS_TEST != null) {
+  if (isTesting()) {
     return;
   }
 
@@ -96,50 +95,6 @@ export default async function displayPendingEditDecorations(
     editor.setDecorations(editStyle.token, []);
     editor.setDecorations(editStyle.line, []);
   });
-}
-
-/**
-1. Shows decorations.
-2. Wait for pending edit decoration time while subtracting the time it takes to actually run the callback
-3. Removes decorations
-*/
-export async function displayDecorationsWhileRunningFunc(
-  selections: SelectionWithEditor[],
-  decorationType: TextEditorDecorationType,
-  callback: () => Promise<void>,
-  showAdditionalHighlightBeforeCallback: boolean
-) {
-  if (!showAdditionalHighlightBeforeCallback) {
-    await callback();
-  }
-
-  await runForEachEditor(
-    selections,
-    (s) => s.editor,
-    async (editor, selections) => {
-      editor.setDecorations(
-        decorationType,
-        selections.map((s) => s.selection)
-      );
-    }
-  );
-
-  const pendingEditDecorationTime = getPendingEditDecorationTime();
-
-  if (showAdditionalHighlightBeforeCallback) {
-    await sleep(pendingEditDecorationTime);
-    await callback();
-  }
-
-  await sleep(pendingEditDecorationTime);
-
-  await runForEachEditor(
-    selections,
-    (s) => s.editor,
-    async (editor) => {
-      editor.setDecorations(decorationType, []);
-    }
-  );
 }
 
 function useLineDecorations(selection: TypedSelection) {

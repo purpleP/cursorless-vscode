@@ -1,24 +1,25 @@
 export const SUBWORD_MATCHER = /[A-Z]?[a-z]+|[A-Z]+(?![a-z])|[0-9]+/g;
 
-export const DEBOUNCE_DELAY = 175;
-
 export const HAT_COLORS = [
   "default",
   "blue",
   "green",
   "red",
+  "pink",
   "yellow",
-  "purple",
 ] as const;
 
 export const HAT_NON_DEFAULT_SHAPES = [
-  "fourPointStar",
-  "chevron",
-  "threePointStar",
+  "ex",
+  "fox",
+  "wing",
   "hole",
   "frame",
   "curve",
   "eye",
+  "play",
+  "bolt",
+  "crosshairs",
 ] as const;
 
 export const HAT_SHAPES = ["default", ...HAT_NON_DEFAULT_SHAPES] as const;

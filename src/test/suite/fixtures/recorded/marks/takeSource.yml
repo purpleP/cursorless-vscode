@@ -1,12 +1,11 @@
-spokenForm: take source
 languageId: typescript
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take source
+  action: setSelection
+  targets:
     - type: primitive
       mark: {type: source}
-  extraArgs: []
-marks: {}
 initialState:
   documentContents: |
     value
@@ -17,6 +16,7 @@ initialState:
   sourceMark:
     - anchor: {line: 1, character: 6}
       active: {line: 1, character: 11}
+  marks: {}
 finalState:
   documentContents: |
     value

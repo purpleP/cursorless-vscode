@@ -27,6 +27,10 @@ import { CopyLinesUp, CopyLinesDown } from "./CopyLines";
 import SetBreakpoint from "./SetBreakpoint";
 import { Sort, Reverse } from "./Sort";
 import Call from "./Call";
+import WrapWithSnippet from "./WrapWithSnippet";
+import Deselect from "./Deselect";
+import Rewrap from "./Rewrap";
+import ExecuteCommand from "./ExecuteCommand";
 
 class Actions implements ActionRecord {
   constructor(private graph: Graph) {}
@@ -37,6 +41,7 @@ class Actions implements ActionRecord {
   cutToClipboard = new Cut(this.graph);
   editNewLineAfter = new EditNewLineBelow(this.graph);
   editNewLineBefore = new EditNewLineAbove(this.graph);
+  executeCommand = new ExecuteCommand(this.graph);
   extractVariable = new ExtractVariable(this.graph);
   findInWorkspace = new FindInFiles(this.graph);
   foldRegion = new Fold(this.graph);
@@ -51,9 +56,11 @@ class Actions implements ActionRecord {
   outdentLine = new OutdentLines(this.graph);
   pasteFromClipboard = new Paste(this.graph);
   remove = new Delete(this.graph);
+  deselect = new Deselect(this.graph);
   replace = new Replace(this.graph);
   replaceWithTarget = new Bring(this.graph);
   reverseTargets = new Reverse(this.graph);
+  rewrapWithPairedDelimiter = new Rewrap(this.graph);
   scrollToBottom = new ScrollToBottom(this.graph);
   scrollToCenter = new ScrollToCenter(this.graph);
   scrollToTop = new ScrollToTop(this.graph);
@@ -66,6 +73,7 @@ class Actions implements ActionRecord {
   toggleLineComment = new CommentLines(this.graph);
   unfoldRegion = new Unfold(this.graph);
   wrapWithPairedDelimiter = new Wrap(this.graph);
+  wrapWithSnippet = new WrapWithSnippet(this.graph);
 }
 
 export default Actions;

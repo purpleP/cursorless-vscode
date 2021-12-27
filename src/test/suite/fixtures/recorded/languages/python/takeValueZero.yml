@@ -1,16 +1,12 @@
-spokenForm: take value zero
 languageId: python
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take value zero
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: value, includeSiblings: false}
       mark: {type: decoratedSymbol, symbolColor: default, character: '0'}
-  extraArgs: []
-marks:
-  default.0:
-    start: {line: 1, character: 15}
-    end: {line: 1, character: 16}
 initialState:
   documentContents: |-
     {
@@ -19,6 +15,10 @@ initialState:
   selections:
     - anchor: {line: 0, character: 0}
       active: {line: 0, character: 0}
+  marks:
+    default.0:
+      start: {line: 1, character: 15}
+      end: {line: 1, character: 16}
 finalState:
   documentContents: |-
     {

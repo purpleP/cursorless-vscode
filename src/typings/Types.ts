@@ -1,18 +1,22 @@
 import { SyntaxNode } from "web-tree-sitter";
 import * as vscode from "vscode";
-import { Location } from "vscode";
+import { ExtensionContext, Location, Selection } from "vscode";
 import { HatStyleName } from "../core/constants";
 import { EditStyles } from "../core/editStyles";
-import NavigationMap from "../core/NavigationMap";
+import HatTokenMap from "../core/HatTokenMap";
+import { Snippets } from "../core/Snippets";
+import { RangeUpdater } from "../core/updateSelections/RangeUpdater";
+import { FullRangeInfo } from "./updateSelections";
+import Decorations from "../core/Decorations";
+import FontMeasurements from "../core/FontMeasurements";
+import { CommandServerApi } from "../util/getExtensionApi";
+import { ReadOnlyHatMap } from "../core/IndividualHatMap";
+import Debug from "../core/Debug";
 
 /**
  * A token within a text editor, including the current display line of the token
  */
-export interface Token {
-  text: string;
-  range: vscode.Range;
-  startOffset: number;
-  endOffset: number;
+export interface Token extends FullRangeInfo {
   editor: vscode.TextEditor;
   displayLine: number;
 }
@@ -43,10 +47,13 @@ export interface DecoratedSymbol {
   character: string;
 }
 
+export type LineNumberType = "absolute" | "relative" | "modulo100";
+
 export interface LineNumberPosition {
+  type: LineNumberType;
   lineNumber: number;
-  isRelative: boolean;
 }
+
 export interface LineNumber {
   type: "lineNumber";
   anchor: LineNumberPosition;
@@ -61,17 +68,23 @@ export type Mark =
   //   | LastCursorPosition Not implemented yet
   | DecoratedSymbol
   | LineNumber;
-export type Delimiter =
+
+export type SimpleSurroundingPairName =
   | "angleBrackets"
   | "backtickQuotes"
   | "curlyBrackets"
   | "doubleQuotes"
-  | "escapedSingleQuotes"
   | "escapedDoubleQuotes"
+  | "escapedParentheses"
+  | "escapedSquareBrackets"
+  | "escapedSingleQuotes"
   | "parentheses"
   | "singleQuotes"
-  | "squareBrackets"
-  | "whitespace";
+  | "squareBrackets";
+export type ComplexSurroundingPairName = "string" | "any";
+export type SurroundingPairName =
+  | SimpleSurroundingPairName
+  | ComplexSurroundingPairName;
 
 export type ScopeType =
   | "argumentOrParameter"
@@ -94,23 +107,39 @@ export type ScopeType =
   | "string"
   | "type"
   | "value"
+  | "condition"
   | "xmlBothTags"
   | "xmlElement"
   | "xmlEndTag"
   | "xmlStartTag";
+
 export type SubTokenType = "word" | "character";
 
+/**
+ * Indicates whether to include or exclude delimiters in a surrounding pair
+ * modifier. In the future, these will become proper modifiers that can be
+ * applied in many places, such as to restrict to the body of an if statement.
+ * By default, a surrounding pair modifier refers to the entire surrounding
+ * range, so if delimiter inclusion is undefined, it's equivalent to not having
+ * one of these modifiers; ie include the delimiters.
+ */
+export type DelimiterInclusion = "excludeInterior" | "interiorOnly" | undefined;
+
+export type SurroundingPairDirection = "left" | "right";
 export interface SurroundingPairModifier {
   type: "surroundingPair";
-  delimiter: Delimiter | null;
-  delimitersOnly: boolean;
+  delimiter: SurroundingPairName;
+  delimiterInclusion: DelimiterInclusion;
+  forceDirection?: SurroundingPairDirection;
 }
+
 export interface ContainingScopeModifier {
   type: "containingScope";
   scopeType: ScopeType;
   valueOnly?: boolean;
   includeSiblings?: boolean;
 }
+
 export interface SubTokenModifier {
   type: "subpiece";
   pieceType: SubTokenType;
@@ -119,15 +148,28 @@ export interface SubTokenModifier {
   excludeAnchor?: boolean;
   excludeActive?: boolean;
 }
+
 export interface MatchingPairSymbolModifier {
   type: "matchingPairSymbol";
 }
+
 export interface IdentityModifier {
   type: "identity";
 }
+
+/**
+ * Converts its input to a raw selection with no type information so for
+ * example if it is the destination of a bring or move it should inherit the
+ * type information such as delimiters from its source.
+ */
+export interface RawSelectionModifier {
+  type: "toRawSelection";
+}
+
 export interface HeadModifier {
   type: "head";
 }
+
 export interface TailModifier {
   type: "tail";
 }
@@ -139,12 +181,15 @@ export type Modifier =
   | SubTokenModifier
   //   | MatchingPairSymbolModifier Not implemented
   | HeadModifier
-  | TailModifier;
+  | TailModifier
+  | RawSelectionModifier;
 
 export type SelectionType =
   //   | "character" Not implemented
   "token" | "line" | "notebookCell" | "paragraph" | "document";
+
 export type Position = "before" | "after" | "contents";
+
 export type InsideOutsideType = "inside" | "outside" | null;
 
 export interface PartialPrimitiveTarget {
@@ -154,6 +199,7 @@ export interface PartialPrimitiveTarget {
   selectionType?: SelectionType;
   position?: Position;
   insideOutsideType?: InsideOutsideType;
+  isImplicit?: boolean;
 }
 
 export interface PartialRangeTarget {
@@ -162,6 +208,7 @@ export interface PartialRangeTarget {
   end: PartialPrimitiveTarget;
   excludeStart?: boolean;
   excludeEnd?: boolean;
+  rangeType?: RangeType;
 }
 
 export interface PartialListTarget {
@@ -181,6 +228,7 @@ export interface PrimitiveTarget {
   selectionType: SelectionType;
   position: Position;
   insideOutsideType: InsideOutsideType;
+  isImplicit: boolean;
 }
 
 export interface RangeTarget {
@@ -189,7 +237,12 @@ export interface RangeTarget {
   active: PrimitiveTarget;
   excludeAnchor: boolean;
   excludeActive: boolean;
+  rangeType: RangeType;
 }
+
+// continuous is one single continuous selection between the two targets
+// vertical puts a selection on each line vertically between the two targets
+export type RangeType = "continuous" | "vertical";
 
 export interface ListTarget {
   type: "list";
@@ -201,7 +254,7 @@ export type Target = PrimitiveTarget | RangeTarget | ListTarget;
 export interface ProcessedTargetsContext {
   currentSelections: SelectionWithEditor[];
   currentEditor: vscode.TextEditor | undefined;
-  navigationMap: NavigationMap;
+  hatTokenMap: ReadOnlyHatMap;
   thatMark: SelectionWithEditor[];
   sourceMark: SelectionWithEditor[];
   getNodeAtLocation: (location: Location) => SyntaxNode;
@@ -232,6 +285,27 @@ export interface SelectionContext {
   trailingDelimiterRange?: vscode.Range | null;
 
   isNotebookCell?: boolean;
+
+  /**
+   * Represents the boundary ranges of this selection. For example, for a
+   * surrounding pair this would be the opening and closing delimiter. For an if
+   * statement this would be the line of the guard as well as the closing brace.
+   */
+  boundary?: SelectionWithContext[];
+
+  /**
+   * Represents the interior ranges of this selection. For example, for a
+   * surrounding pair this would exclude the opening and closing delimiter. For an if
+   * statement this would be the statements in the body.
+   */
+  interior?: SelectionWithContext[];
+
+  /**
+   * Indicates that this is a raw selection with no type information so for
+   * example if it is the destination of a bring or move it should inherit the
+   * type information such as delimiters from its source
+   */
+  isRawSelection?: boolean;
 }
 
 export interface TypedSelection {
@@ -258,6 +332,7 @@ export interface ActionPreferences {
   position?: Position;
   insideOutsideType: InsideOutsideType;
   selectionType?: SelectionType;
+  modifier?: Modifier;
 }
 
 export interface SelectionWithContext {
@@ -273,7 +348,12 @@ export interface ActionReturnValue {
 
 export interface Action {
   run(targets: TypedSelection[][], ...args: any[]): Promise<ActionReturnValue>;
-  targetPreferences: ActionPreferences[];
+
+  /**
+   * Used to define default values for parts of target during inference.
+   * @param args Extra args to command
+   */
+  getTargetPreferences(...args: any[]): ActionPreferences[];
 }
 
 export type ActionType =
@@ -281,8 +361,10 @@ export type ActionType =
   | "clearAndSetSelection"
   | "copyToClipboard"
   | "cutToClipboard"
+  | "deselect"
   | "editNewLineAfter"
   | "editNewLineBefore"
+  | "executeCommand"
   | "extractVariable"
   | "findInWorkspace"
   | "foldRegion"
@@ -300,6 +382,7 @@ export type ActionType =
   | "replace"
   | "replaceWithTarget"
   | "reverseTargets"
+  | "rewrapWithPairedDelimiter"
   | "scrollToBottom"
   | "scrollToCenter"
   | "scrollToTop"
@@ -311,20 +394,69 @@ export type ActionType =
   | "toggleLineBreakpoint"
   | "toggleLineComment"
   | "unfoldRegion"
-  | "wrapWithPairedDelimiter";
+  | "wrapWithPairedDelimiter"
+  | "wrapWithSnippet";
 
 export type ActionRecord = Record<ActionType, Action>;
 
 export interface Graph {
+  /**
+   * Keeps a map from action names to objects that implement the given action
+   */
   readonly actions: ActionRecord;
-  readonly editStyles: EditStyles;
-  readonly navigationMap: NavigationMap;
-}
 
-export interface DecorationColorSetting {
-  dark: string;
-  light: string;
-  highContrast: string;
+  /**
+   * Maintains decorations that can be used to visually indicate to the user
+   * the targets of their actions.
+   */
+  readonly editStyles: EditStyles;
+
+  /**
+   * Maps from (hatStyle, character) pairs to tokens
+   */
+  readonly hatTokenMap: HatTokenMap;
+
+  /**
+   * The extension context passed in during extension activation
+   */
+  readonly extensionContext: ExtensionContext;
+
+  /**
+   * Keeps a merged list of all user-contributed, core, and
+   * extension-contributed cursorless snippets
+   */
+  readonly snippets: Snippets;
+
+  /**
+   * This component can be used to register a list of ranges to keep up to date
+   * as the document changes
+   */
+  readonly rangeUpdater: RangeUpdater;
+
+  /**
+   * Responsible for all the hat styles
+   */
+  readonly decorations: Decorations;
+
+  /**
+   * Takes measurements of the user's font
+   */
+  readonly fontMeasurements: FontMeasurements;
+
+  /**
+   * API object for interacting with the command server, if it exists
+   */
+  readonly commandServerApi: CommandServerApi | null;
+
+  /**
+   * Function to access nodes in the tree sitter.
+   */
+  readonly getNodeAtLocation: (location: vscode.Location) => SyntaxNode;
+
+  /**
+   * Debug logger
+   */
+  readonly debug: Debug;
 }
 
 export type NodeMatcherValue = {
@@ -358,6 +490,15 @@ export type SelectionExtractor = (
 export interface Edit {
   range: vscode.Range;
   text: string;
-  dontMoveOnEqualStart?: boolean;
-  extendOnEqualEmptyRange?: boolean;
+
+  /**
+   * If this edit is an insertion, ie the range has zero length, then this
+   * field can be set to `true` to indicate that any adjacent empty selection
+   * should *not* be shifted to the right, as would normally happen with an
+   * insertion. This is equivalent to the
+   * [distinction](https://code.visualstudio.com/api/references/vscode-api#TextEditorEdit)
+   * in a vscode edit builder between doing a replace with an empty range
+   * versus doing an insert.
+   */
+  isReplace?: boolean;
 }

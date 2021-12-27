@@ -1,15 +1,11 @@
-spokenForm: drop vest
 languageId: typescript
 command:
-  actionName: insertEmptyLineBefore
-  partialTargets:
+  version: 1
+  spokenForm: drop vest
+  action: insertEmptyLineBefore
+  targets:
     - type: primitive
       mark: {type: decoratedSymbol, symbolColor: default, character: v}
-  extraArgs: []
-marks:
-  default.v:
-    start: {line: 1, character: 6}
-    end: {line: 1, character: 11}
 initialState:
   documentContents: |
 
@@ -17,6 +13,10 @@ initialState:
   selections:
     - anchor: {line: 1, character: 28}
       active: {line: 1, character: 28}
+  marks:
+    default.v:
+      start: {line: 1, character: 6}
+      end: {line: 1, character: 11}
 finalState:
   documentContents: |
 

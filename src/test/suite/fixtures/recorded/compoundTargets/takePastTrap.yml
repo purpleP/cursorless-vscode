@@ -1,8 +1,9 @@
-spokenForm: take past trap
 languageId: typescript
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take past trap
+  action: setSelection
+  targets:
     - type: range
       start: {type: primitive}
       end:
@@ -10,16 +11,15 @@ command:
         mark: {type: decoratedSymbol, symbolColor: default, character: t}
       excludeStart: false
       excludeEnd: false
-  extraArgs: []
-marks:
-  default.t:
-    start: {line: 0, character: 6}
-    end: {line: 0, character: 11}
 initialState:
   documentContents: hello there
   selections:
     - anchor: {line: 0, character: 3}
       active: {line: 0, character: 3}
+  marks:
+    default.t:
+      start: {line: 0, character: 6}
+      end: {line: 0, character: 11}
 finalState:
   documentContents: hello there
   selections:

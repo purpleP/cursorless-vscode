@@ -1,21 +1,12 @@
-spokenForm: move vest
 languageId: typescript
 command:
-  actionName: moveToTarget
-  partialTargets:
+  version: 1
+  spokenForm: move vest
+  action: moveToTarget
+  targets:
     - type: primitive
       mark: {type: decoratedSymbol, symbolColor: default, character: v}
-    - type: primitive
-      mark: {type: cursor}
-      selectionType: token
-      position: contents
-      modifier: {type: identity}
-      insideOutsideType: inside
-  extraArgs: []
-marks:
-  default.v:
-    start: {line: 1, character: 6}
-    end: {line: 1, character: 11}
+    - {type: primitive, isImplicit: true}
 initialState:
   documentContents: |
 
@@ -23,6 +14,10 @@ initialState:
   selections:
     - anchor: {line: 0, character: 0}
       active: {line: 0, character: 0}
+  marks:
+    default.v:
+      start: {line: 1, character: 6}
+      end: {line: 1, character: 11}
 finalState:
   documentContents: |
     value

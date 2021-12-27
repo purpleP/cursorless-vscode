@@ -1,15 +1,11 @@
-spokenForm: dedent vest
 languageId: typescript
 command:
-  actionName: outdentLine
-  partialTargets:
+  version: 1
+  spokenForm: dedent vest
+  action: outdentLine
+  targets:
     - type: primitive
       mark: {type: decoratedSymbol, symbolColor: default, character: v}
-  extraArgs: []
-marks:
-  default.v:
-    start: {line: 1, character: 10}
-    end: {line: 1, character: 15}
 initialState:
   documentContents: |2
 
@@ -17,6 +13,10 @@ initialState:
   selections:
     - anchor: {line: 0, character: 0}
       active: {line: 0, character: 0}
+  marks:
+    default.v:
+      start: {line: 1, character: 10}
+      end: {line: 1, character: 15}
 finalState:
   documentContents: |
 

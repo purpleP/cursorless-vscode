@@ -1,19 +1,29 @@
-spokenForm: take if
 languageId: cpp
 command:
-  actionName: setSelection
-  partialTargets:
+  version: 1
+  spokenForm: take if
+  action: setSelection
+  targets:
     - type: primitive
       modifier: {type: containingScope, scopeType: ifStatement}
-  extraArgs: []
-marks: {}
 initialState:
-  documentContents: "void f() {\r\n    if constexpr (true) {\r\n        \r\n    }\r\n}"
+  documentContents: |-
+    void f() {
+        if constexpr (true) {
+            
+        }
+    }
   selections:
     - anchor: {line: 2, character: 8}
       active: {line: 2, character: 8}
+  marks: {}
 finalState:
-  documentContents: "void f() {\r\n    if constexpr (true) {\r\n        \r\n    }\r\n}"
+  documentContents: |-
+    void f() {
+        if constexpr (true) {
+            
+        }
+    }
   selections:
     - anchor: {line: 1, character: 4}
       active: {line: 3, character: 5}

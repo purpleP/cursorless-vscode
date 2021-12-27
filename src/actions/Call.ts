@@ -8,7 +8,7 @@ import {
 import { ensureSingleTarget } from "../util/targetUtils";
 
 export default class Call implements Action {
-  targetPreferences: ActionPreferences[] = [
+  getTargetPreferences: () => ActionPreferences[] = () => [
     { insideOutsideType: "inside" },
     { insideOutsideType: "inside" },
   ];
@@ -22,7 +22,6 @@ export default class Call implements Action {
     TypedSelection[]
   ]): Promise<ActionReturnValue> {
     ensureSingleTarget(sources);
-    ensureSingleTarget(destinations);
 
     const { returnValue: texts } = await this.graph.actions.getText.run(
       [sources],

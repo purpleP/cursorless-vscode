@@ -1,21 +1,21 @@
-export type ConstructorMap<T> = {
-  [P in keyof T]: new (t: T) => T[P];
+import isTesting from "../testUtil/isTesting";
+
+export type FactoryMap<T> = {
+  [P in keyof T]: (t: T) => T[P];
 };
 
 function makeGetter<GraphType, K extends keyof GraphType>(
   graph: GraphType,
   components: Partial<GraphType>,
-  constructorMap: ConstructorMap<GraphType>,
+  factoryMap: FactoryMap<GraphType>,
   key: K
 ): () => GraphType[K] {
   return () => {
     var returnValue: GraphType[K];
 
     if (components[key] == null) {
-      const constructor = constructorMap[key] as new (
-        graph: GraphType
-      ) => GraphType[K];
-      returnValue = new constructor(graph);
+      const factory = factoryMap[key] as (graph: GraphType) => GraphType[K];
+      returnValue = factory(graph);
       components[key] = returnValue;
     } else {
       returnValue = components[key] as GraphType[K];
@@ -26,19 +26,22 @@ function makeGetter<GraphType, K extends keyof GraphType>(
 }
 
 export default function makeGraph<GraphType extends object>(
-  constructorMap: ConstructorMap<GraphType>
+  factoryMap: FactoryMap<GraphType>
 ) {
   const components: Partial<GraphType> = {};
   const graph: Partial<GraphType> = {};
 
-  Object.keys(constructorMap).forEach((key: keyof GraphType | PropertyKey) => {
+  Object.keys(factoryMap).forEach((key: keyof GraphType | PropertyKey) => {
     Object.defineProperty(graph, key, {
       get: makeGetter(
         graph as GraphType,
         components,
-        constructorMap,
+        factoryMap,
         key as keyof GraphType
       ),
+
+      // NB: If we're testing, we make property mutable to allow mocking
+      configurable: isTesting(),
     });
   });
 
