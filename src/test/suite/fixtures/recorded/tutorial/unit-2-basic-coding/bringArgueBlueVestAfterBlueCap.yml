@@ -1,0 +1,68 @@
+languageId: python
+command:
+  version: 1
+  spokenForm: bring argue blue vest after blue cap
+  action: replaceWithTarget
+  targets:
+    - type: primitive
+      modifier: {type: containingScope, scopeType: argumentOrParameter, includeSiblings: false}
+      mark: {type: decoratedSymbol, symbolColor: blue, character: v}
+    - type: primitive
+      mark: {type: decoratedSymbol, symbolColor: blue, character: c}
+      position: after
+initialState:
+  documentContents: |
+    def print_color(color, invert=False):
+        if invert:
+            print(invert_color(color))
+        else:
+            print(color)
+
+
+    def invert_color(color):
+        if color == "black":
+            return "white"
+        if color == "white":
+            return "black"
+        return color
+
+
+    print_color("black")
+  selections:
+    - anchor: {line: 12, character: 16}
+      active: {line: 12, character: 16}
+  marks:
+    blue.v:
+      start: {line: 0, character: 23}
+      end: {line: 0, character: 29}
+    blue.c:
+      start: {line: 7, character: 17}
+      end: {line: 7, character: 22}
+finalState:
+  documentContents: |
+    def print_color(color, invert=False):
+        if invert:
+            print(invert_color(color))
+        else:
+            print(color)
+
+
+    def invert_color(color, invert=False):
+        if color == "black":
+            return "white"
+        if color == "white":
+            return "black"
+        return color
+
+
+    print_color("black")
+  selections:
+    - anchor: {line: 12, character: 16}
+      active: {line: 12, character: 16}
+  thatMark:
+    - anchor: {line: 7, character: 22}
+      active: {line: 7, character: 36}
+  sourceMark:
+    - anchor: {line: 0, character: 23}
+      active: {line: 0, character: 35}
+fullTargets: [{type: primitive, mark: {type: decoratedSymbol, symbolColor: blue, character: v}, selectionType: token, position: contents, insideOutsideType: null, modifier: {type: containingScope, scopeType: argumentOrParameter, includeSiblings: false}, isImplicit: false}, {type: primitive, mark: {type: decoratedSymbol, symbolColor: blue, character: c}, selectionType: token, position: after, insideOutsideType: null, modifier: {type: containingScope, scopeType: argumentOrParameter, includeSiblings: false}, isImplicit: false}]
