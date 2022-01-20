@@ -373,6 +373,7 @@ export type ActionType =
   | "extractVariable"
   | "findInWorkspace"
   | "foldRegion"
+  | "generateSnippet"
   | "getText"
   | "indentLine"
   | "insertCopyAfter"
