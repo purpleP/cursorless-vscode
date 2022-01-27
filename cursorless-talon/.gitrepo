@@ -4,9 +4,9 @@
 ; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
 ;
 [subrepo]
-	remote = https://github.com/cursorless-dev/cursorless-talon.git
-	branch = main
-	commit = afa65b88397984b3a9e66702550beaadd23a3f00
-	parent = bfd4097f4ac0eeaf4db325a05ad238c845cdcaac
+	remote = file:///Users/pokey/src/cursorless-talon-development
+	branch = cursorless-tutorial
+	commit = 304922b10b9d1bb1c333fdc9ce0b51a75fe2fbfd
+	parent = 59175ca0e68bd856aa2671d2ec15ac153129ad50
 	method = merge
 	cmdver = 0.4.3
