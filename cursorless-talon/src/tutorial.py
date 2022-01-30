@@ -18,13 +18,13 @@ def process_literal_step(argument: str):
     return f"<cmd@{argument}/>"
 
 
-def make_cursorless_list_processor(*raw_list_names: str):
-    return make_list_processor(
+def make_cursorless_list_reverse_look_up(*raw_list_names: str):
+    return make_list_reverse_look_up(
         *[get_cursorless_list_name(raw_list_name) for raw_list_name in raw_list_names]
     )
 
 
-def make_list_processor(*list_names: str):
+def make_list_reverse_look_up(*list_names: str):
     """
     Given a list of talon list names, returns a function that does a reverse
     look-up in all lists to find the spoken form for its input.
@@ -43,8 +43,8 @@ def make_list_processor(*list_names: str):
 
 interpolation_processor_map: dict[str, Callable[[str], str]] = {
     "literalStep": process_literal_step,
-    "action": make_cursorless_list_processor(*ACTION_LIST_NAMES),
-    "scopeType": make_cursorless_list_processor(*SCOPE_LIST_NAMES),
+    "action": make_cursorless_list_reverse_look_up(*ACTION_LIST_NAMES),
+    "scopeType": make_cursorless_list_reverse_look_up(*SCOPE_LIST_NAMES),
     "step": lambda name: name,
 }
 
