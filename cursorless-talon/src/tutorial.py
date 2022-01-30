@@ -18,11 +18,21 @@ def process_literal_step(argument: str):
     return f"<cmd@{argument}/>"
 
 
+def make_cursorless_list_processor(*raw_list_names: str):
+    return make_list_processor(
+        *[get_cursorless_list_name(raw_list_name) for raw_list_name in raw_list_names]
+    )
+
+
 def make_list_processor(*list_names: str):
+    """
+    Given a list of talon list names, returns a function that does a reverse
+    look-up in all lists to find the spoken form for its input.
+    """
 
     def return_func(argument: str):
-        for raw_list_name in list_names:
-            for spoken_form, value in registry.lists[get_cursorless_list_name(raw_list_name)][-1].items():
+        for list_name in list_names:
+            for spoken_form, value in registry.lists[list_name][-1].items():
                 if value == argument:
                     return f'<*"{spoken_form}"/>'
 
@@ -30,22 +40,24 @@ def make_list_processor(*list_names: str):
 
     return return_func
 
+
 interpolation_processor_map: dict[str, Callable[[str], str]] = {
     "literalStep": process_literal_step,
-    "action": make_list_processor(*ACTION_LIST_NAMES),
-    "scopeType": make_list_processor(*SCOPE_LIST_NAMES),
+    "action": make_cursorless_list_processor(*ACTION_LIST_NAMES),
+    "scopeType": make_cursorless_list_processor(*SCOPE_LIST_NAMES),
     "step": lambda name: name,
 }
+
 
 def process_tutorial_step(raw: str):
     print(f"{raw=}")
     current_index = 0
     content = ""
     for match in regex.finditer(raw):
-        content += raw[current_index:match.start()]
+        content += raw[current_index : match.start()]
         content += interpolation_processor_map[match.group(1)](match.group(2))
         current_index = match.end()
-    content += raw[current_index:len(raw)]
+    content += raw[current_index : len(raw)]
     print(f"{content=}")
 
     return {
