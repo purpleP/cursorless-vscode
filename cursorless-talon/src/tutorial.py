@@ -1,14 +1,52 @@
 import json
 import re
+from typing import Callable
 
-from talon import actions, app
+from talon import actions, app, registry
+from .actions.actions import ACTION_LIST_NAMES
+from .modifiers.containing_scope import SCOPE_LIST_NAMES
+from .conventions import get_cursorless_list_name
 
 regex = re.compile(r"\{(\w+):([^}]+)\}")
 
 
+def not_implemented(argument: str):
+    raise NotImplementedError()
+
+
+def process_literal_step(argument: str):
+    return f"<cmd@{argument}/>"
+
+
+def make_list_processor(*list_names: str):
+
+    def return_func(argument: str):
+        for raw_list_name in list_names:
+            for spoken_form, value in registry.lists[get_cursorless_list_name(raw_list_name)][-1].items():
+                if value == argument:
+                    return f'<*"{spoken_form}"/>'
+
+        raise LookupError(f"Unknown identifier `{argument}`")
+
+    return return_func
+
+interpolation_processor_map: dict[str, Callable[[str], str]] = {
+    "literalStep": process_literal_step,
+    "action": make_list_processor(*ACTION_LIST_NAMES),
+    "scopeType": make_list_processor(*SCOPE_LIST_NAMES),
+    "step": lambda name: name,
+}
+
 def process_tutorial_step(raw: str):
-    print([(match.group(1), match.group(2)) for match in regex.finditer(raw)])
-    content = raw
+    print(f"{raw=}")
+    current_index = 0
+    content = ""
+    for match in regex.finditer(raw):
+        content += raw[current_index:match.start()]
+        content += interpolation_processor_map[match.group(1)](match.group(2))
+        current_index = match.end()
+    content += raw[current_index:len(raw)]
+    print(f"{content=}")
 
     return {
         "content": content,
